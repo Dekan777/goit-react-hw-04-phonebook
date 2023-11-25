@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import React, { useEffect, useState } from 'react';
 import { nanoid } from 'nanoid';
 
 import { getRandomHexColor } from 'utils/helper';
@@ -9,29 +9,18 @@ import ContactList from 'components/ContactList/ContactList';
 
 const TOKEN_LS = 'contacts';
 
-class App extends Component {
-  state = {
-    contacts: [],
-    filter: '',
-  };
+const App = () => {
+  const [contacts, setContacts] = useState(
+    JSON.parse(localStorage.getItem(TOKEN_LS)) || []
+  );
+  const [filter, setFilter] = useState('');
 
-  componentDidMount() {
-    if (localStorage.getItem(TOKEN_LS)) {
-      this.setState({
-        contacts: JSON.parse(localStorage.getItem(TOKEN_LS)),
-      });
-    }
-  }
+  useEffect(() => {
+    localStorage.setItem(TOKEN_LS, JSON.stringify(contacts));
+  }, [contacts]);
 
-  componentDidUpdate(_, prevState) {
-    console.log('updated');
-    if (this.state.contacts.length !== prevState.contacts.length) {
-      localStorage.setItem(TOKEN_LS, JSON.stringify(this.state.contacts));
-    }
-  }
-
-  onAddContact = data => {
-    const isExist = this.state.contacts.some(contact => {
+  const onAddContact = data => {
+    const isExist = contacts.some(contact => {
       return contact.name.toLowerCase() === data.name.toLowerCase();
     });
 
@@ -40,57 +29,51 @@ class App extends Component {
       return;
     }
 
-    this.setState(prevState => ({
-      contacts: [
-        ...prevState.contacts,
-        {
-          id: nanoid(),
-          name: data.name,
-          number: data.number,
-          bgColor: getRandomHexColor().bgColor,
-          color: getRandomHexColor().color,
-        },
-      ],
-    }));
+    setContacts(prevContacts => [
+      ...prevContacts,
+      {
+        id: nanoid(),
+        name: data.name,
+        number: data.number,
+        bgColor: getRandomHexColor().bgColor,
+        color: getRandomHexColor().color,
+      },
+    ]);
   };
 
-  onDeleteContact = id => {
-    this.setState(prevState => ({
-      contacts: prevState.contacts.filter(contact => contact.id !== id),
-    }));
-  };
-
-  onSearchContact = event => {
-    this.setState({
-      filter: event.target.value,
-    });
-  };
-
-  render() {
-    const filteredContacts = this.state.contacts.filter(contact =>
-      contact.name.toLowerCase().includes(this.state.filter.toLowerCase())
+  const onDeleteContact = id => {
+    setContacts(prevContacts =>
+      prevContacts.filter(contact => contact.id !== id)
     );
+  };
 
-    return (
-      <Container>
-        <Title>Phonebook</Title>
-        <Wrapper>
-          <ContactForm onAddContact={this.onAddContact} />
-          {this.state.contacts.length > 0 ? (
-            <>
-              <Filter onSearchContact={this.onSearchContact} />
-              <ContactList
-                filteredContacts={filteredContacts}
-                onDeleteContact={this.onDeleteContact}
-              />
-            </>
-          ) : (
-            <h2>No contacts yet</h2>
-          )}
-        </Wrapper>
-      </Container>
-    );
-  }
-}
+  const onSearchContact = event => {
+    setFilter(event.target.value);
+  };
+
+  const filteredContacts = contacts.filter(contact =>
+    contact.name.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  return (
+    <Container>
+      <Title>Phonebook</Title>
+      <Wrapper>
+        <ContactForm onAddContact={onAddContact} />
+        {contacts.length > 0 ? (
+          <>
+            <Filter onSearchContact={onSearchContact} />
+            <ContactList
+              filteredContacts={filteredContacts}
+              onDeleteContact={onDeleteContact}
+            />
+          </>
+        ) : (
+          <h2>No contacts yet</h2>
+        )}
+      </Wrapper>
+    </Container>
+  );
+};
 
 export default App;
